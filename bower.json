@@ -1,0 +1,19 @@
+{
+  "name": "jquery-simplyscroll",
+  "version": "2.0.5",
+  "homepage": "https://github.com/saintberry/jquery-simplyscroll",
+  "description": "Hacked up version of jQuery simplyScroll 2 originally created by Will Kelly @logicbox",
+  "main": "[\"jquery.simplyscroll.js\", \"jquery.simplyscroll.min.js\"]",
+  "authors": [
+    "[\"Will Kelly\"]"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
