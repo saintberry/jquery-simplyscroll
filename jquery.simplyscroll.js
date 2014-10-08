@@ -20,7 +20,6 @@ $.fn.simplyScroll = function(options) {
 };
 
 var defaults = {
-	customClass: 'simply-scroll',
 	frameRate: 24, //No of movements per second
 	speed: 1, //No of pixels per frame
 	orientation: 'horizontal', //'horizontal or 'vertical' - not to be confused with device orientation
@@ -30,7 +29,6 @@ var defaults = {
 	direction: 'forwards', //'forwards' or 'backwards'.
 	pauseOnHover: true, //autoMode = loop|bounce only
 	pauseOnTouch: true, //" touch device only
-	pauseButton: false, //" generates an extra element to allow manual pausing 
 	startOnLoad: false //use this to delay starting of plugin until all page assets have loaded
 };
 	
@@ -55,20 +53,12 @@ $.simplyScroll = function(el,options) {
 	var $items = this.$list.children();
 	
 	//generate extra markup
-	this.$list.addClass('simply-scroll-list')
-		.wrap('<div class="simply-scroll-clip"></div>')
-		.parent().wrap('<div class="' + this.o.customClass + ' simply-scroll-container"></div>');
+	this.$list.addClass('simply-scroll-list');
 	
 	if (!this.isAuto) { //button placeholders
 		this.$list.parent().parent()
 		.prepend('<div class="simply-scroll-forward"></div>')
 		.prepend('<div class="simply-scroll-back"></div>');
-	} else {
-		if (this.o.pauseButton) {
-			this.$list.parent().parent()
-			.prepend('<div class="simply-scroll-btn simply-scroll-btn-pause"></div>');
-			this.o.pauseOnHover = false;
-		}
 	}
 	
 	//wrap an extra div around the whole lot if elements scrolled aren't equal
@@ -156,8 +146,10 @@ $.simplyScroll.fn.extend({
 				//due to inconsistent RTL implementation force back to LTR then fake
 				if (this.isRTL) {
 					this.$clip[0].dir = 'ltr';
-					//based on feedback seems a good idea to force float right
-					this.$items.css('float','right');
+					if (this.isHorizontal()) {
+						//based on feedback seems a good idea to force float right
+						this.$items.css('float','right');
+					}
 				}
 			}
 		
@@ -201,8 +193,6 @@ $.simplyScroll.fn.extend({
 				//due to inconsistent RTL implementation force back to LTR then fake
 				if (this.isRTL) {
 					this.$clip[0].dir = 'ltr';
-					//based on feedback seems a good idea to force float right
-					this.$items.css('float','right');
 				}
 			}
 		}
@@ -246,26 +236,21 @@ $.simplyScroll.fn.extend({
 				self.moveForward();	
 			}
 		};
+        this.resumeTimer = null;
 		this.funcMovePause = function() { self.movePause(); };
 		this.funcMoveStop = function() { self.moveStop(); };
 		this.funcMoveResume = function() { self.moveResume(); };
-		
-		
-		
+        this.funcSetTimer = function() {
+            self.funcMovePause();
+            clearTimeout(this.resumeTimer);
+            self.resumeTimer = setTimeout(function() {
+                self.funcMoveResume();
+            }, 5000);
+        };
+
 		if (this.isAuto) {
 			
 			this.paused = false;
-			
-			function togglePause() {
-				if (self.paused===false) {
-					self.paused=true;
-					self.funcMovePause();
-				} else {
-					self.paused=false;
-					self.funcMoveResume();
-				}
-				return self.paused;
-			};
 			
 			//disable pauseTouch when links are present
 			if (this.supportsTouch && this.$items.find('a').length) {
@@ -274,12 +259,12 @@ $.simplyScroll.fn.extend({
 			
 			if (this.isAuto && this.o.pauseOnHover && !this.supportsTouch) {
 				this.$clip.bind(this.events.start,this.funcMovePause).bind(this.events.end,this.funcMoveResume);
-			} else if (this.isAuto && this.o.pauseOnTouch && !this.o.pauseButton && this.supportsTouch) {
+			} else if (this.isAuto && this.o.pauseOnTouch && this.supportsTouch) {
 				
 				var touchStartPos, scrollStartPos;
 				
 				this.$clip.bind(this.events.start,function(e) {
-					togglePause();
+                    self.funcSetTimer();
 					var touch = e.originalEvent.touches[0];
 					touchStartPos = self.isHorizontal ? touch.pageX : touch.pageY;
 					scrollStartPos = self.$clip[0]['scroll' + self.scrollPos];
@@ -301,19 +286,10 @@ $.simplyScroll.fn.extend({
 					self.$clip[0]['scroll' + self.scrollPos] = pos;
 					
 					//force pause
-					self.funcMovePause();
-					self.paused = true;
+                    self.funcSetTimer();
 				});	
-			} else {
-				if (this.o.pauseButton) {
-					
-					this.$btnPause = $(".simply-scroll-btn-pause",this.$container)
-						.bind('click',function(e) {
-							e.preventDefault();
-							togglePause() ? $(this).addClass('active') : $(this).removeClass('active');
-					});
-				}
 			}
+
 			this.funcMoveForward();
 		} else {
 
